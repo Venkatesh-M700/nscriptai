@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 250 60% 99%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    --primary: 255 84% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 30% 96%;
+    --secondary-foreground: 260 40% 25%;
+    --muted: 250 30% 96%;
+    --muted-foreground: 240 8% 46%;
+    --accent: 330 81% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 30% 90%;
+    --input: 250 30% 90%;
+    --ring: 255 84% 54%;
+    --chart-1: 255 84% 54%;
+    --chart-2: 280 73% 52%;
+    --chart-3: 330 81% 60%;
+    --chart-4: 200 80% 50%;
+    --chart-5: 150 60% 45%;
+    --radius: 1rem;
+
+    --indigo: #4f46e5;
+    --violet: #7c3aed;
+    --neon-pink: #ec4899;
+  }
+
+  .dark {
+    --background: 250 30% 6%;
+    --foreground: 250 20% 96%;
+    --card: 250 25% 10%;
+    --card-foreground: 250 20% 96%;
+    --popover: 250 25% 10%;
+    --popover-foreground: 250 20% 96%;
+    --primary: 255 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 25% 16%;
+    --secondary-foreground: 250 20% 90%;
+    --muted: 250 25% 16%;
+    --muted-foreground: 250 15% 60%;
+    --accent: 330 81% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 25% 18%;
+    --input: 250 25% 18%;
+    --ring: 255 90% 66%;
+    --chart-1: 255 90% 66%;
+    --chart-2: 280 73% 60%;
+    --chart-3: 330 81% 65%;
+    --chart-4: 200 80% 55%;
+    --chart-5: 150 60% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border;
+    border-color: rgba(255,255,255,0.10);
+  }
+  .dark .glass {
+    border-color: rgba(255,255,255,0.05);
+  }
+  .glass-strong {
+    @apply bg-card/80 backdrop-blur-2xl border;
+    border-color: rgba(255,255,255,0.15);
+  }
+  .dark .glass-strong {
+    border-color: rgba(255,255,255,0.10);
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#4f46e5] via-[#7c3aed] to-[#ec4899];
+  }
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+  }
+  .bg-gradient-brand-soft {
+    background-image: linear-gradient(135deg, rgba(79,70,229,0.12) 0%, rgba(124,58,237,0.12) 50%, rgba(236,72,153,0.12) 100%);
+  }
+  .ring-gradient {
+    @apply ring-2 ring-[#7c3aed]/40;
+  }
+  .shadow-glow {
+    box-shadow: 0 0 0 1px rgba(124,58,237,0.1), 0 8px 30px rgba(79,70,229,0.18);
+  }
+  .shadow-glow-pink {
+    box-shadow: 0 0 0 1px rgba(236,72,153,0.1), 0 8px 30px rgba(236,72,153,0.18);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer base {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-muted-foreground/30;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
