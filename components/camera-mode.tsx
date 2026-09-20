@@ -10,6 +10,7 @@ import {
   X,
   AlertCircle,
   PowerOff,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,17 +35,19 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
   ({ disabled }, forwardedRef) => {
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const streamRef = React.useRef<MediaStream | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
     const [stream, setStream] = React.useState<MediaStream | null>(null);
     const [showPermissionDialog, setShowPermissionDialog] = React.useState(false);
     const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
     const [showGrid, setShowGrid] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
 
-    // ಕ್ಯಾಮೆರಾ ಹಾರ್ಡ್‌ವೇರ್ ಅನ್ನು ತಕ್ಷಣ ಸಂಪೂರ್ಣವಾಗಿ ಆಫ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+    // ಕ್ಯಾಮೆರಾ ಆಫ್ ಮಾಡುವ ಫಂಕ್ಷನ್
     const stopStream = React.useCallback(() => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => {
-          track.stop(); // ಲ್ಯಾಪ್‌ಟಾಪ್ ಕ್ಯಾಮೆರಾ ಲೈಟ್ ತಕ್ಷಣ ಆಫ್ ಮಾಡುತ್ತದೆ
+          track.stop();
         });
         streamRef.current = null;
       }
@@ -59,14 +62,13 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
       },
     }));
 
-    // ಬೇರೆ ಟ್ಯಾಬ್‌ಗೆ ಹೋದಾಗ ಅಥವಾ ಕಾಂಪೊನೆಂಟ್ ಬದಲಾದಾಗ ಕ್ಯಾಮೆರಾ ಆಫ್ ಆಗುವುದನ್ನು ಖಚಿತಪಡಿಸುತ್ತದೆ
     React.useEffect(() => {
       return () => {
         stopStream();
       };
     }, [stopStream]);
 
-    // ವಿಡಿಯೋ ಎಲಿಮೆಂಟ್ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಬಂದಾಗ ಸ್ಟ್ರೀಮ್ ಲಿಂಕ್ ಮಾಡುವುದು
+    // ವಿಡಿಯೋ ಎಲಿಮೆಂಟ್ ಲಿಂಕ್ ಮಾಡುವುದು
     const videoCallback = React.useCallback(
       (node: HTMLVideoElement | null) => {
         videoRef.current = node;
@@ -81,18 +83,32 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
       [stream]
     );
 
+    // ಮೊಬೈಲ್ ಮತ್ತು ಲ್ಯಾಪ್‌ಟಾಪ್ ಎರಡಕ್ಕೂ ಹೊಂದುವ ಸ್ಟ್ರೀಮ್ ಆರಂಭ
     const startStream = async () => {
       setError(null);
-      stopStream(); // ಮೊದಲಿದ್ದ ಯಾವುದೇ ಸ್ಟ್ರೀಮ್ ಇದ್ದರೆ ಕ್ಲಿಯರ್ ಮಾಡು
+      stopStream();
+
+      // ಮೊಬೈಲ್ ಬ್ರೌಸರ್‌ಗಳಿಗೆ MediaDevices ಚೆಕ್
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Camera API is not supported in this browser. Please open in Google Chrome app.');
+        return;
+      }
 
       try {
         let mediaStream: MediaStream;
+
+        // 1. ಮೊದಲಿಗೆ ಮೊಬೈಲ್‌ನ ಹಿಂಬದಿಯ ಕ್ಯಾಮೆರಾ (environment) ಪ್ರಯತ್ನಿಸುವುದು
         try {
           mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
             audio: false,
           });
         } catch {
+          // 2. ಲ್ಯಾಪ್‌ಟಾಪ್ ವೆಬ್‌ಕ್ಯಾಮ್ ಅಥವಾ ಸಾಮಾನ್ಯ ಕ್ಯಾಮೆರಾ ಫಾಲ್‌ಬ್ಯಾಕ್
           mediaStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false,
@@ -101,13 +117,12 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
 
         streamRef.current = mediaStream;
         setStream(mediaStream);
-        setShowPermissionDialog(false);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to access camera';
         if (msg.includes('Permission') || msg.includes('denied') || msg.includes('NotAllowed')) {
-          setError('Camera permission was denied. Please allow camera access in your browser settings.');
+          setError('Camera permission was blocked. Please tap the 3 dots in the top corner and click "Open in Chrome".');
         } else if (msg.includes('NotFound') || msg.includes('Devices')) {
-          setError('No camera device found on this laptop.');
+          setError('No camera device found.');
         } else {
           setError(`Camera error: ${msg}`);
         }
@@ -120,9 +135,12 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
     };
 
     const confirmEnable = () => {
+      // ಪಾಪ್-ಅಪ್ ಅನ್ನು ಮೊದಲೇ ಮುಚ್ಚಬೇಕು, ಆಗ ಮಾತ್ರ ಬ್ರೌಸರ್ ಪರ್ಮಿಷನ್ ಪಾಪ್-ಅಪ್ ಮುಂದೆ ಬರುತ್ತದೆ!
+      setShowPermissionDialog(false);
       startStream();
     };
 
+    // ನೇರ ಫೋಟೋ ಕ್ಯಾಪ್ಚರ್
     const capture = () => {
       const video = videoRef.current;
       if (!video || !streamRef.current) return;
@@ -134,8 +152,6 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/png');
       setCapturedImage(dataUrl);
-
-      // ಫೋಟೋ ತೆಗೆದ ತಕ್ಷಣ ಕ್ಯಾಮೆರಾ ಆಫ್ ಮಾಡಿ ಬ್ಯಾಟರಿ ಮತ್ತು ಪ್ರೊಸೆಸರ್ ಉಳಿಸುವುದು
       stopStream();
     };
 
@@ -144,8 +160,31 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
       startStream();
     };
 
+    // ಮೊಬೈಲ್ ನೇರ ಕ್ಯಾಮೆರಾ ಫಾಲ್‌ಬ್ಯಾಕ್ (In-App ಬ್ರೌಸರ್‌ನಲ್ಲೂ 100% ಕೆಲಸ ಮಾಡುತ್ತದೆ)
+    const handleNativeMobileCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCapturedImage(event.target?.result as string);
+          stopStream();
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     return (
       <div className="flex flex-col gap-4 h-full">
+        {/* ಹಿಡನ್ ಮೊಬೈಲ್ ಕ್ಯಾಮೆರಾ ಇನ್‌ಪುಟ್ */}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={fileInputRef}
+          onChange={handleNativeMobileCapture}
+          className="hidden"
+        />
+
         <AnimatePresence mode="wait">
           {capturedImage ? (
             <motion.div
@@ -192,21 +231,39 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
                   Click the button below to turn on the camera. It automatically turns off when you switch tabs.
                 </p>
               </div>
+
               {error && (
-                <div className="flex items-start gap-2 max-w-sm p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>{error}</span>
+                <div className="flex flex-col items-center gap-2 max-w-sm p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
                 </div>
               )}
-              <Button
-                onClick={handleEnableCamera}
-                disabled={disabled}
-                size="lg"
-                className="rounded-xl bg-gradient-brand text-white hover:opacity-90 shadow-glow"
-              >
-                <Camera className="h-5 w-5 mr-2" />
-                Enable Camera
-              </Button>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <Button
+                  onClick={handleEnableCamera}
+                  disabled={disabled}
+                  size="lg"
+                  className="rounded-xl bg-gradient-brand text-white hover:opacity-90 shadow-glow"
+                >
+                  <Camera className="h-5 w-5 mr-2" />
+                  Enable Live Camera
+                </Button>
+
+                {/* ಮೊಬೈಲ್ ಕ್ಯಾಮೆರಾ ನೇರ ಬಟನ್ (ಯಾವುದೇ ಬ್ರೌಸರ್ ಬ್ಲಾಕ್ ತೊಂದರೆ ಇರುವುದಿಲ್ಲ) */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-xl border-primary/40 hover:bg-primary/10"
+                >
+                  <Smartphone className="h-5 w-5 mr-2 text-primary" />
+                  Open Phone Camera
+                </Button>
+              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -238,7 +295,6 @@ const CameraMode = React.forwardRef<CameraModeHandle, CameraModeProps>(
                   <span className="text-xs text-white font-medium">LIVE</span>
                 </div>
 
-                {/* ತಕ್ಷಣ ಕ್ಯಾಮೆರಾ ಆಫ್ ಮಾಡಲು Power Off ಬಟನ್ */}
                 <Button
                   variant="destructive"
                   size="sm"
