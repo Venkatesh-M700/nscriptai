@@ -1,10 +1,22 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// gemini-2.0-flash ಮತ್ತು gemini-1.5-flash ಬದಲಿಗೆ gemini-3.6-flash ಅಪ್‌ಡೇಟ್ ಮಾಡಲಾಗಿದೆ
 export const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const;
 
 export function getGenAIModel(apiKey: string, preferred?: string) {
-  const genAI = new GoogleGenerativeAI(apiKey);
+  // 1. ಪರಿಸರ ವೇರಿಯೇಬಲ್ ಅಥವಾ ನೇರ Gemini API Key
+  const realGeminiKey =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) ||
+    (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
+    'AQ.Ab8RN6L6SGJ09Si8nFzhysuvQa55EY-myxDifVjzQNtV4HWbQg';
+
+  // 2. ಒಂದು ವೇಳೆ ಹೊರಗಿನಿಂದ ಬಂದ ಕೀ ತಪ್ಪಾಗಿದ್ದರೆ (ಉದಾ: Supabase ನ 'eyJ...' ಆಗಿದ್ದರೆ ಅಥವಾ ಖಾಲಿಯಾಗಿದ್ದರೆ),
+  // ತಾನಾಗಿಯೇ ಸರಿಯಾದ Gemini Key ಗೆ ಬದಲಾಯಿಸುತ್ತದೆ:
+  let finalKey = apiKey;
+  if (!finalKey || finalKey.startsWith('eyJ') || finalKey.length < 20) {
+    finalKey = realGeminiKey;
+  }
+
+  const genAI = new GoogleGenerativeAI(finalKey);
   const model =
     preferred && GEMINI_MODELS.includes(preferred as (typeof GEMINI_MODELS)[number])
       ? preferred
