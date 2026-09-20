@@ -2,17 +2,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const;
 
-export function getGenAIModel(apiKey: string, preferred?: string) {
-  // Next.js ಗೆ ಹೊಂದಿಕೊಳ್ಳುವ ಸುರಕ್ಷಿತ Key Loading
-  const envKey =
-    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    'AQ.Ab8RN6L6SGJ09Si8nFzhysuvQa55EY-myxDifVjzQNtV4HWbQg';
+export function getGenAIModel(apiKey?: string, preferred?: string) {
+  // ಸರ್ವರ್-ಸೈಡ್ ಎನ್ವಿರಾನ್‌ಮೆಂಟ್‌ನಿಂದ ಮಾತ್ರ ಕೀ ಪಡೆಯುತ್ತದೆ (ಯಾವುದೇ ಹಾರ್ಡ್‌ಕೋಡೆಡ್ ಕೀ ಇಲ್ಲ)
+  const finalKey = apiKey && !apiKey.startsWith('eyJ') && apiKey.length > 20
+    ? apiKey
+    : process.env.GEMINI_API_KEY;
 
-  // ಹೊರಗಿನಿಂದ ಬಂದ ಕೀ ತಪ್ಪಾಗಿದ್ದರೆ (Supabase ನ eyJ... ಆಗಿದ್ದರೆ), ಸರಿಯಾದ ಕೀ ಬಳಸುವುದು:
-  let finalKey = apiKey;
-  if (!finalKey || finalKey.startsWith('eyJ') || finalKey.length < 20) {
-    finalKey = envKey;
+  if (!finalKey) {
+    throw new Error("GEMINI_API_KEY is not configured in Netlify environment variables.");
   }
 
   const genAI = new GoogleGenerativeAI(finalKey);
