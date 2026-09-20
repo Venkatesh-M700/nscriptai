@@ -3,17 +3,16 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const;
 
 export function getGenAIModel(apiKey: string, preferred?: string) {
-  // 1. ಪರಿಸರ ವೇರಿಯೇಬಲ್ ಅಥವಾ ನೇರ Gemini API Key
-  const realGeminiKey =
-    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) ||
-    (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
+  // Next.js ಗೆ ಹೊಂದಿಕೊಳ್ಳುವ ಸುರಕ್ಷಿತ Key Loading
+  const envKey =
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
     'AQ.Ab8RN6L6SGJ09Si8nFzhysuvQa55EY-myxDifVjzQNtV4HWbQg';
 
-  // 2. ಒಂದು ವೇಳೆ ಹೊರಗಿನಿಂದ ಬಂದ ಕೀ ತಪ್ಪಾಗಿದ್ದರೆ (ಉದಾ: Supabase ನ 'eyJ...' ಆಗಿದ್ದರೆ ಅಥವಾ ಖಾಲಿಯಾಗಿದ್ದರೆ),
-  // ತಾನಾಗಿಯೇ ಸರಿಯಾದ Gemini Key ಗೆ ಬದಲಾಯಿಸುತ್ತದೆ:
+  // ಹೊರಗಿನಿಂದ ಬಂದ ಕೀ ತಪ್ಪಾಗಿದ್ದರೆ (Supabase ನ eyJ... ಆಗಿದ್ದರೆ), ಸರಿಯಾದ ಕೀ ಬಳಸುವುದು:
   let finalKey = apiKey;
   if (!finalKey || finalKey.startsWith('eyJ') || finalKey.length < 20) {
-    finalKey = realGeminiKey;
+    finalKey = envKey;
   }
 
   const genAI = new GoogleGenerativeAI(finalKey);
